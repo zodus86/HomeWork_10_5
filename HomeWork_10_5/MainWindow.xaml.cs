@@ -37,5 +37,10 @@ namespace HomeWork_10_5
         {
             client.SendMessage(txtMsgSend.Text, Convert.ToInt64(TargetSend.Text));
         }
+
+        private void SaveChat_Click(object sender, RoutedEventArgs e)
+        {
+            client.SaveChat();
+        }
     }
 }

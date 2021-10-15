@@ -1,11 +1,13 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
-using System.Threading.Tasks;
+using System.Xml.Linq;
 using Telegram.Bot;
 using Telegram.Bot.Types.InputFiles;
 
@@ -33,7 +35,6 @@ namespace HomeWork_10_5
 
         private void MessageListener(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
-            Console.WriteLine("---");
             Debug.WriteLine("+++---");
 
             string text = $"{DateTime.Now.ToLongTimeString()}: {e.Message.Chat.FirstName} {e.Message.Chat.Id} {e.Message.Text}";
@@ -63,6 +64,7 @@ namespace HomeWork_10_5
                 messageText = $"{e.Message.Chat.FirstName} вас приветсвует секретный бот облако" +
                     "\nотправляйте мне свои документы и файлы я буду их хранить" +
                     "\nСписок доступных комманд:" +
+                    "\n $ - посмотреть курс доллара" +
                     "\n/seeFiles" +
                     "\nнапишите Имя файла для скачки";
             }
@@ -93,6 +95,11 @@ namespace HomeWork_10_5
             
 
 
+        }
+        public void SaveChat()
+        {
+            string json = JsonConvert.SerializeObject(BotMessageLog);
+            File.WriteAllText(rootPath + "_chat.json", json);
         }
 
         public void SendMessage(string Text, long Id)
@@ -162,5 +169,8 @@ namespace HomeWork_10_5
             return text.ToString();
         }
 
+
+        
+        
     }
 }

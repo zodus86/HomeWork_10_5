@@ -51,6 +51,8 @@
                 
                 <Image Height="100"/>
                 <Image Height="100" Source="image.jpg"/>
+                
+                <Button x:Name="SaveChat" Margin="20" Content="Save chat" Click="SaveChat_Click"/>
 
 
 
