@@ -40,7 +40,7 @@ namespace HomeWork_10_5
 
         private void SaveChat_Click(object sender, RoutedEventArgs e)
         {
-            client.SaveChat();
+            client.SaveChatTask();
         }
     }
 }

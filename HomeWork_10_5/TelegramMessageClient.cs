@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Telegram.Bot;
 using Telegram.Bot.Types.InputFiles;
@@ -41,20 +43,11 @@ namespace HomeWork_10_5
 
             Debug.WriteLine($"{text} TypeMessage: {e.Message.Type.ToString()}");
             string messageText = "";
-           
-            
+          
 
             if (e.Message.Type == Telegram.Bot.Types.Enums.MessageType.Document)
             {
-                Debug.WriteLine(e.Message.Document.FileId);
-                Debug.WriteLine(e.Message.Document.FileName);
-                Debug.WriteLine(e.Message.Document.FileSize);
-                
-                messageText = $"загружаю файл - {e.Message.Document.FileName} {e.Message.Document.FileSize}";
-                
-                this.DownLoad(e.Message.Document.FileId, e.Message.Document.FileName);
-                
-                SendMessage(messageText, e.Message.Chat.Id);
+                DownloadAsync(e);
             }
 
             if (e.Message.Text == null) return;
@@ -73,8 +66,8 @@ namespace HomeWork_10_5
                 messageText = GetDir();
             }else if (File.Exists(rootPath + e.Message.Text))
             {
-
-                UpLoad(e.Message.Text, e.Message.Chat.Id);
+               ///UpLoad(e.Message.Text, e.Message.Chat.Id);
+                UpLoadAsync(e.Message.Text, e.Message.Chat.Id);
                 messageText = $"отправлен файл {e.Message.Text}";
             }
             else if (String.IsNullOrEmpty(messageText))
@@ -92,28 +85,33 @@ namespace HomeWork_10_5
                 new MessageLog(
                     DateTime.Now.ToLongTimeString(), e.Message.Text, e.Message.Chat.FirstName, e.Message.Chat.Id));
             });
-            
-
 
         }
         public void SaveChat()
         {
+           
             string json = JsonConvert.SerializeObject(BotMessageLog);
             File.WriteAllText(rootPath + "_chat.json", json);
+        }
+        /// <summary>
+        /// Task
+        /// </summary>
+        public void SaveChatTask()
+        {
+            Task saveTask = Task.Factory.StartNew(SaveChat);
+            saveTask.Wait();
+            
         }
 
         public void SendMessage(string Text, long Id)
         {
             bot.SendTextMessageAsync(Id, Text);
-
             w.Dispatcher.Invoke(() =>
             {
                 BotMessageLog.Add(
                 new MessageLog(
                     DateTime.Now.ToLongTimeString(), Text, "Секретный бот", 0));
             });
-
-
         }
 
 
@@ -123,13 +121,33 @@ namespace HomeWork_10_5
         /// <param name="file"></param>
         public async void UpLoad(string file, long userID)
         {
-            using (FileStream stream = File.Open(rootPath + file, FileMode.Open))
+            try
             {
-                InputOnlineFile iof = new InputOnlineFile(stream);
-                iof.FileName = file;
-                var send = await bot.SendDocumentAsync(userID, iof, "Вот то что вы просили!");
+                using (FileStream stream = File.Open(rootPath + file, FileMode.Open))
+                {
+                    InputOnlineFile iof = new InputOnlineFile(stream);
+                    iof.FileName = file;
+                    SendMessage($"был вызвон метод с ID- {Task.CurrentId}", userID);
+                    var send = await bot.SendDocumentAsync(userID, iof, "Вот то что вы просили!");
+                }
             }
+            catch
+            {
+                SendMessage("Файл временно не доступен, попробуйте позже", userID);
+            }
+
         }
+
+        /// <summary>
+        /// Ручная Асинхронизация
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="userID"></param>
+        public void UpLoadAsync(string file, long userID)
+        {
+            Task.Run(() => UpLoad(file, userID));
+        }
+
 
 
         /// <summary>
@@ -137,8 +155,9 @@ namespace HomeWork_10_5
         /// </summary>
         /// <param name="fileId"></param>
         /// <param name="path"></param>
-        public async void DownLoad(string fileId, string path)
+        public async void DownLoad(string fileId, string path, long id)
         {
+            SendMessage($"ID текущего задания {Task.CurrentId}", id);
             using (FileStream fs = new FileStream(rootPath + path, FileMode.Create)){
                 var file = await bot.GetFileAsync(fileId);
                 await bot.DownloadFileAsync(file.FilePath, fs);
@@ -147,10 +166,15 @@ namespace HomeWork_10_5
             //FileStream fs = new FileStream(rootPath + path, FileMode.Create);
             //fs.Close();
             //fs.Dispose();
-
         }
 
+        public void DownloadAsync(Telegram.Bot.Args.MessageEventArgs e)
+        {
+            string messageText = $"загружаю файл - {e.Message.Document.FileName} {e.Message.Document.FileSize}";
+            Task.Factory.StartNew(() => DownLoad(e.Message.Document.FileId, e.Message.Document.FileName, e.Message.Chat.Id));
+            SendMessage(messageText, e.Message.Chat.Id);
 
+        }
         /// <summary>
         /// Получение всех файлов 
         /// </summary>
@@ -169,8 +193,5 @@ namespace HomeWork_10_5
             return text.ToString();
         }
 
-
-        
-        
     }
 }
